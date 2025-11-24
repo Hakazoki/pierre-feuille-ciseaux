@@ -1,0 +1,18 @@
+body {
+    font-family: 'Poppins', sans-serif;
+}
+
+button.choice {
+    width: 130px;
+    border-radius: 12px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+button.choice:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 14px black (0,0,0,0.2);
+}
+
+#resultat {
+    height: 40px;
+}
