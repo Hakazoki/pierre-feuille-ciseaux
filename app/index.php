@@ -20,30 +20,39 @@
         header("Location: ./index.php");
         exit();
     }
-    $choixjoueur = $_POST["choix"] ?? '';
-    if (empty($choixjoueur)) {
-        echo "Vide";
-    } else {
-        echo "<br> Joueur : ";
-        echo $choixjoueur;
-    }
     $pierre = 'pierre';
     $feuille = 'feuille';
     $ciseaux = 'ciseaux';
     $options = [$pierre, $feuille, $ciseaux];
-    $choixadversaire = $options[array_rand($options)];
-    echo "<br> Adversaire : ";
-    echo $choixadversaire;
-    if ($choixjoueur == $choixadversaire) {
-        echo "<br> Egalité";
-    } else if (($choixjoueur == $pierre && $choixadversaire == $ciseaux or $choixjoueur == $feuille && $choixadversaire == $pierre or $choixjoueur == $ciseaux && $choixadversaire == $feuille)) {
-        echo "<br> Vous avez gagné !";
-        $_SESSION['score'] = $_SESSION['score'] + 1;
+    if ((isset($_POST['choix'])) and !empty($_POST['choix'])) {
+        $choixjoueur = $_POST["choix"] ?? '';
+        if (empty($choixjoueur)) {
+            echo "Vide";
+        } else {
+            echo "<br> Joueur : ";
+            echo $choixjoueur;
+        }
+        $choixadversaire = $options[array_rand($options)];
+        echo "<br> Adversaire : ";
+        echo $choixadversaire;
+        if ($choixjoueur == $choixadversaire) {
+            $_SESSION['resultat'] = "Egalité";
+            // echo "<br> Egalité";
+        } else if (($choixjoueur == $pierre && $choixadversaire == $ciseaux or $choixjoueur == $feuille && $choixadversaire == $pierre or $choixjoueur == $ciseaux && $choixadversaire == $feuille)) {
+            // echo "<br> Vous avez gagné !";
+            $_SESSION['resultat'] = "Vous avez gagné !";
+            $_SESSION['score'] = $_SESSION['score'] + 1;
+        } else {
+            $_SESSION['resultat'] = "Vous avez perdu !";
+            // echo "<br> Vous avez perdu !";
+        }
+        echo "<br> Resultat : ";
+        echo $_SESSION['resultat'];
+        echo "<hr> Score : ";
+        echo $_SESSION['score'];
     } else {
-        echo "<br> Vous avez perdu !";
+        echo "<br> Veuillez choisir une option";
     }
-    echo "<hr> Score : ";
-    echo $_SESSION['score'];
     ?>
     <div class="grid grid-cols-3 gap-4 justify-items-center mt-10 content-center">
         <form action="#" method="POST">
