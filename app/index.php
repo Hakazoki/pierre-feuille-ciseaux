@@ -1,164 +1,9 @@
 <?php
-session_start();
+require_once './config.php';
+require_once './authentification.php';
+require_once './gamelogic.php';
+require_once './leaderboard.php';
 
-
-define('OPTIONS', ['pierre', 'feuille', 'ciseaux', 'lézard', 'spock']);
-define('GAMESTATE', ['VICTOIRE', 'DÉFAITE', 'ÉGALITÉ']);
-
-
-
-function initpartie()
-{
-    $_SESSION['score']           = 0;
-    $_SESSION['egalites']        = 0;
-    $_SESSION['defaite']         = 0;
-    $_SESSION['choixjoueur']     = [];
-    $_SESSION['choixadversaire'] = [];
-    $_SESSION['etat']            = null;
-    $_SESSION['tour']            = 1;
-    $_SESSION['mode']            = 'traditionnel';
-    $_SESSION['random']          = 'oui';
-}
-
-// 0=Pierre, 1=Feuille, 2=Ciseaux, 3=Lézard, 4=Spock
-
-function determinerGagnant($MoveJoueur, $MoveAdversaire)
-{
-    $regles = [
-        0 => [2, 3],
-        1 => [0, 4],
-        2 => [1, 3],
-        3 => [1, 4],
-        4 => [0, 2]
-    ];
-
-    if ($MoveJoueur === $MoveAdversaire) {
-        return 2;
-    }
-
-    if (in_array($MoveAdversaire, $regles[$MoveJoueur])) {
-        return 0;
-    }
-
-    return 1;
-}
-
-function rediriger()
-{
-    header("Location: " . $_SERVER['PHP_SELF']);
-    exit();
-}
-
-function restart()
-{
-    $_SESSION['score']           = 0;
-    $_SESSION['egalites']        = 0;
-    $_SESSION['defaite']         = 0;
-    $_SESSION['choixjoueur']     = [];
-    $_SESSION['choixadversaire'] = [];
-    $_SESSION['etat']            = null;
-    $_SESSION['tour']            = 1;
-    rediriger();
-}
-
-if (isset($_POST['restart'])) {
-    restart();
-}
-
-if (isset($_POST['switch_mode'])) {
-    $_SESSION['mode'] = $_POST['switch_mode'];
-    restart();
-}
-
-if (isset($_POST['switch_ia'])) {
-    $_SESSION['random'] = $_POST['switch_ia'];
-    restart();
-}
-
-if (isset($_POST['clear_history'])) {
-    $_SESSION['choixjoueur'] = [];
-    $_SESSION['choixadversaire'] = [];
-    rediriger();
-}
-
-if (empty($_SESSION['choixjoueur']) && !isset($_SESSION['mode'])) {
-    initpartie();
-}
-
-if (!empty($_POST['choix']) && in_array($_POST['choix'], OPTIONS)) {
-
-    $maxIndex = ($_SESSION['mode'] === 'traditionnel') ? 2 : 4;
-    $MoveJoueur = array_search($_POST['choix'], OPTIONS);
-
-    if (isset($_SESSION['random']) && $_SESSION['random'] === 'oui') {
-        $MoveAdversaire = rand(0, $maxIndex);
-    } else {
-
-        $etapelogique = ($_SESSION['tour'] - 1) % 5 + 1;
-
-        switch ($etapelogique) {
-
-
-            case 1: // tour 1 : choix aléatoire 
-                $MoveAdversaire = rand(0, $maxIndex);
-                break;
-
-            case 2: // tour 2 : option qui bat le choix du tour 1 du joueur
-                $couptour1 = $_SESSION['choixjoueur'][0];
-                $idcouptour1 = array_search($couptour1, OPTIONS);
-                $optionsgagnantes = [];
-                for ($i = 0; $i <= $maxIndex; $i++) {
-                    if (determinerGagnant($idcouptour1, $i) === 1) {
-                        $optionsgagnantes[] = $i;
-                    }
-                }
-                if (!empty($optionsgagnantes)) {
-                    $MoveAdversaire = $optionsgagnantes[array_rand($optionsgagnantes)];
-                }
-                break;
-
-            case 3: // tour 3 : répète son choix du tour 1
-                $couptour1 = $_SESSION['choixadversaire'][sizeof($_SESSION['choixadversaire']) - 2];
-                $MoveAdversaire = array_search($couptour1, OPTIONS);
-                break;
-
-            case 4: // tour 4 : option qu'il n'as pas encore dite ou pas depuis longtemps
-                $exclus = [
-                    array_search(end($_SESSION['choixadversaire']), OPTIONS),
-                    array_search(prev($_SESSION['choixadversaire']), OPTIONS)
-                ];
-                do {
-                    $MoveAdversaire = rand(0, $maxIndex);
-                } while (in_array($MoveAdversaire, $exclus));
-                break;
-
-            case 5: // tour 5 : répète le choix du joueur au tour 4
-                $MoveAdversaire = array_search($_SESSION['choixjoueur'][sizeof($_SESSION['choixjoueur']) - 1], OPTIONS);
-                break;
-        }
-    }
-
-    $resultat = determinerGagnant($MoveJoueur, $MoveAdversaire);
-
-    switch ($resultat) {
-        case 0:
-            $_SESSION['score']++;
-            break;
-        case 1:
-            $_SESSION['defaite']++;
-            break;
-        case 2:
-            $_SESSION['egalites']++;
-            break;
-    }
-
-    $_SESSION['tour']++;
-    $_SESSION['choixjoueur'][]     = OPTIONS[$MoveJoueur];
-    $_SESSION['choixadversaire'][] = OPTIONS[$MoveAdversaire];
-    $_SESSION['etat']              = $resultat;
-
-    rediriger();
-}
 ?>
 
 <!DOCTYPE html>
@@ -176,90 +21,113 @@ if (!empty($_POST['choix']) && in_array($_POST['choix'], OPTIONS)) {
 
 <body>
 
-    <nav class="navbar navbar-glass">
-        <div class="container-fluid px-lg-5">
-            <a class="navbar-brand d-flex align-items-center gap-2" href="#">
-                <span class="brand-logo">SHIFUMI</span>
-                <span class="badge bg-white text-dark border border-white bg-opacity-25 small"><?= ucfirst($_SESSION['mode']) ?></span>
-                <span class="badge bg-white text-dark border border-white bg-opacity-25 small"><?= ucfirst($_SESSION['random']) ?></span>
+    <nav class="navbar navbar-custom glass-panel">
+        <div class="container-fluid px-lg-5 justify-content-between">
 
-            </a>
+            <div class="d-flex align-items-center">
+                <a class="navbar-brand d-flex align-items-center" href="#">
+                    <span class="brand-logo">SHIFUMI</span>
+                </a>
 
-            <button class="btn btn-menu px-3 py-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMenu">
-                <i class="bi bi-list fs-5"></i>
-            </button>
+                <form method="POST" class="d-flex gap-2 align-items-center m-0">
+                    <button type="submit" name="switch_mode" value="<?= $nextModeVal ?>"
+                        class="badge-btn <?= $_SESSION['mode'] === 'spock' ? 'active-mode' : '' ?>"
+                        title="Switch mode">
+                        <?= $_SESSION['mode'] === 'traditionnel' ? 'Mode Classique' : 'Mode Spock 🖖' ?>
+                    </button>
+
+                    <button type="submit" name="switch_ia" value="<?= $nextRandomVal ?>"
+                        class="badge-btn"
+                        title="Switch IA">
+                        <?= $_SESSION['random'] === 'oui' ? 'Random' : 'IA Active 🤖' ?>
+                    </button>
+                </form>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+
+                <button type="button" class="btn btn-link text-warning text-decoration-none opacity-75 hover-opacity-100" data-bs-toggle="modal" data-bs-target="#leaderboardModal" title="Classement">
+                    <i class="bi bi-trophy-fill fs-5"></i>
+                    <span class="d-none d-md-inline-block ms-1">Classement</span>
+                </button>
+
+                <?php if (isset($_SESSION['user_id'])): ?>
+                    <span class="text-white small opacity-75 d-none d-md-block">
+                        Bonjour, <strong><?= htmlspecialchars($_SESSION['username']) ?></strong>
+                    </span>
+                    <a href="?logout=true" class="btn btn-link text-danger text-decoration-none opacity-75 hover-opacity-100" title="Déconnexion">
+                        <i class="bi bi-box-arrow-right fs-5"></i>
+                    </a>
+                <?php else: ?>
+                    <button type="button" class="btn btn-link text-white text-decoration-none opacity-75 hover-opacity-100" data-bs-toggle="modal" data-bs-target="#authModal">
+                        <i class="bi bi-box-arrow-in-right fs-5"></i> Login
+                    </button>
+                <?php endif; ?>
+            </div>
+
         </div>
     </nav>
 
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasMenu">
-        <div class="offcanvas-header">
-            <h5 class="offcanvas-title">Menu</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
-        </div>
-        <div class="offcanvas-body d-flex flex-column">
-            <div class="mb-4">
-                <form method="POST">
-                    <div class="d-grid gap-2">
-                        <button type="submit" name="switch_mode" value="traditionnel" class="btn btn-outline-light <?= $_SESSION['mode'] == 'traditionnel' ? 'active' : '' ?>">
-                            Mode Classique
-                        </button>
-                        <button type="submit" name="switch_mode" value="spock" class="btn btn-outline-info <?= $_SESSION['mode'] == 'spock' ? 'active' : '' ?>">
-                            Mode Spock 🖖
-                        </button>
-                    </div>
-                </form>
-            </div>
-            <hr class="border-secondary opacity-25">
-            <div class="mb-4">
-                <form method="POST">
-                    <div class="d-grid gap-2">
-                        <button type="submit" name="switch_ia" value="oui" class="btn btn-outline-light <?= $_SESSION['random'] == 'oui' ? 'active' : '' ?>">
-                            Mode Random
-                        </button>
-                        <button type="submit" name="switch_ia" value="non" class="btn btn-outline-info <?= $_SESSION['random'] == 'non' ? 'active' : '' ?>">
-                            Mode IA
-                        </button>
-                    </div>
-                </form>
-            </div>
-            <div class="mt-auto">
-                <a href="#" class="nav-link-custom text-danger"><i class="bi bi-box-arrow-right"></i> Login / Logout</a>
-            </div>
-        </div>
-    </div>
-
     <main class="container">
+
+        <?php if (isset($authError)): ?>
+            <div class="alert alert-danger alert-dismissible fade show mt-3 w-50 mx-auto" role="alert">
+                <?= $authError ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
+
         <div class="row justify-content-center">
             <div class="col-lg-7">
 
                 <div class="row g-3 mb-4">
                     <div class="col-4">
-                        <div class="stat-card">
+                        <div class="stat-card panel">
                             <div class="stat-value text-win"><?= $_SESSION['score'] ?></div>
                             <div class="stat-label">Joueur</div>
                         </div>
                     </div>
                     <div class="col-4">
-                        <div class="stat-card">
+                        <div class="stat-card panel">
                             <div class="stat-value text-tie"><?= $_SESSION['egalites'] ?></div>
                             <div class="stat-label">Égalité</div>
                         </div>
                     </div>
                     <div class="col-4">
-                        <div class="stat-card">
+                        <div class="stat-card panel">
                             <div class="stat-value text-loss"><?= $_SESSION['defaite'] ?></div>
                             <div class="stat-label">CPU</div>
                         </div>
                     </div>
                     <div class="col-12">
-                        <div class="stat-card">
-                            <div class="stat-value text"><?= $_SESSION['tour'] ?></div>
-                            <div class="stat-label">Tour</div>
+                        <div class="stat-card panel d-flex justify-content-between align-items-center px-4">
+                            <div class="text-start">
+                                <div class="text-white fw-bold fs-5"><?= $_SESSION['last_game_time'] ?? '--:--' ?></div>
+                                <div class="stat-label" style="font-size: 0.65rem;">Début</div>
+                            </div>
+
+                            <div class="text-center">
+                                <div class="stat-value text"><?= $_SESSION['tour'] ?></div>
+                                <div class="stat-label">Tour</div>
+                            </div>
+
+                            <?php
+                            $nbparties = $_SESSION['score'] + $_SESSION['defaite'] + $_SESSION['egalites'];
+                            $winrate = ($nbparties > 0) ? round(($_SESSION['score'] / $nbparties) * 100) : 0;
+
+                            $couleur_winrate = 'text';
+                            if ($winrate >= 33) $couleur_winrate = 'text-win';
+                            if ($winrate < 33 && $nbparties > 0) $couleur_winrate = 'text-loss';
+                            ?>
+                            <div class="text-end">
+                                <div class="<?= $couleur_winrate ?> fw-bold fs-5"><?= $winrate ?>%</div>
+                                <div class="stat-label" style="font-size: 0.65rem;">Winrate</div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="game-area mb-4">
+                <div class="game-area panel panel-lg mb-4">
                     <div class="text-center result-display mb-4">
                         <?php if ($_SESSION['etat'] !== null): ?>
                             <?php
@@ -285,10 +153,8 @@ if (!empty($_POST['choix']) && in_array($_POST['choix'], OPTIONS)) {
                     <form action="" method="POST" class="row g-3 justify-content-center">
                         <?php
                         $emojis = ['pierre' => '🪨', 'feuille' => '📄', 'ciseaux' => '✂️', 'lézard' => '🦎', 'spock' => '🖖'];
-
-                        $playableOptions = ($_SESSION['mode'] === 'traditionnel') ? array_slice(OPTIONS, 0, 3) : OPTIONS;
-
-                        foreach ($playableOptions as $opt):
+                        $options = ($_SESSION['mode'] === 'traditionnel') ? array_slice(OPTIONS, 0, 3) : OPTIONS;
+                        foreach ($options as $opt):
                         ?>
                             <div class="col-4">
                                 <button type="submit" name="choix" value="<?= $opt ?>" class="choice-btn">
@@ -302,13 +168,13 @@ if (!empty($_POST['choix']) && in_array($_POST['choix'], OPTIONS)) {
                     <div class="text-center mt-4">
                         <form method="POST" class="d-inline">
                             <button type="submit" name="restart" value="1" class="btn btn-sm btn-outline-secondary rounded-pill px-4">
-                                <i class="bi bi-arrow-counterclockwise me-1"></i> Restart Game
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> Redémarrer la partie
                             </button>
                         </form>
                     </div>
                 </div>
 
-                <div class="history-container">
+                <div class="history-container panel">
                     <div class="history-header">
                         <span class="text-white fw-bold small text-uppercase letter-spacing-1">Historique</span>
                         <form method="POST" class="m-0">
@@ -321,38 +187,28 @@ if (!empty($_POST['choix']) && in_array($_POST['choix'], OPTIONS)) {
                     <div class="history-list">
                         <?php
                         $history = array_reverse(array_map(null, $_SESSION['choixjoueur'], $_SESSION['choixadversaire']));
-
                         if (empty($history)): ?>
                             <div class="text-center p-4 text small">
                                 <i class="bi bi-clock-history d-block fs-4 mb-2 opacity-50"></i>
                                 L'historique est vide
                             </div>
                         <?php else: ?>
-                            <?php foreach ($history as $pair):
-                                [$jName, $aName] = $pair;
-
+                            <?php foreach ($history as $round):
+                                [$jName, $aName] = $round;
                                 $jIndex = array_search($jName, OPTIONS);
                                 $aIndex = array_search($aName, OPTIONS);
-
                                 $res = determinerGagnant($jIndex, $aIndex);
-
-                                $rowClass = 'loss';
-                                if ($res === 0) $rowClass = 'win';
-                                if ($res === 2) $rowClass = 'tie';
+                                $rowClass = ($res === 0) ? 'win' : (($res === 2) ? 'tie' : 'loss');
                             ?>
                                 <div class="history-item <?= $rowClass ?>">
                                     <div class="d-flex align-items-center gap-2">
-                                        <i class="bi bi-person-fill opacity-50"></i>
+                                        <span class="bi bi-person-fill opacity-50"></span>
                                         <span class="<?= $rowClass == 'win' ? 'text-white' : 'text-muted' ?>"><?= ucfirst($jName) ?></span>
                                     </div>
-
-                                    <div class="text-center opacity-25 small">
-                                        <i class="bi bi-x-lg"></i>
-                                    </div>
-
+                                    <div class="text-center opacity-25 small"><span class="bi bi-x-lg"></span></div>
                                     <div class="d-flex align-items-center justify-content-end gap-2">
                                         <span class="<?= $rowClass == 'loss' ? 'text-white' : 'text-muted' ?>"><?= ucfirst($aName) ?></span>
-                                        <i class="bi bi-cpu-fill opacity-50"></i>
+                                        <span class="bi bi-cpu-fill opacity-50"></span>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
@@ -362,10 +218,149 @@ if (!empty($_POST['choix']) && in_array($_POST['choix'], OPTIONS)) {
 
             </div>
         </div>
-
     </main>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-</body>
 
+    <div class="modal fade" id="leaderboardModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-custom">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-trophy-fill text-warning me-2"></i>Classement Top 10</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-striped mb-0" style="background: transparent;">
+                            <thead>
+                                <tr>
+                                    <th class="text-center py-3 text small text-uppercase" style="background: rgba(0,0,0,0.2);">#</th>
+                                    <th class="py-3 text small text-uppercase" style="background: rgba(0,0,0,0.2);">Joueur</th>
+                                    <th class="text-center py-3 text small text-uppercase" style="background: rgba(0,0,0,0.2);">Winrate</th>
+                                    <th class="text-end py-3 text small text-uppercase me-3" style="background: rgba(0,0,0,0.2);">Victoires</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($leaderboard)): ?>
+                                    <tr>
+                                        <td colspan="4" class="text-center py-4 text">Aucun joueur classé pour le moment.</td>
+                                    </tr>
+                                <?php else: ?>
+                                    <?php $rank = 1;
+                                    foreach ($leaderboard as $joueur): ?>
+                                        <tr style="border-color: var(--panel-border);">
+                                            <td class="text-center align-middle">
+                                                <?php
+                                                if ($rank === 1) echo '🥇';
+                                                elseif ($rank === 2) echo '🥈';
+                                                elseif ($rank === 3) echo '🥉';
+                                                else echo '<span class="opacity-50 text-white small">' . $rank . '</span>';
+                                                ?>
+                                            </td>
+                                            <td class="align-middle">
+                                                <span class="<?= $joueur['username'] === ($_SESSION['username'] ?? '') ? 'text-info fw-bold' : 'text-white' ?>">
+                                                    <?= htmlspecialchars($joueur['username']) ?>
+                                                </span>
+                                                <div class="small text" style="font-size: 0.75em;">
+                                                    <?= $joueur['parties'] ?> parties jouées
+                                                </div>
+                                            </td>
+                                            <td class="text-center align-middle">
+                                                <?php
+                                                $p_winrate = ($joueur['parties'] > 0) ? round(($joueur['victoires'] / $joueur['parties']) * 100) : 0;
+                                                $p_color = ($p_winrate >= 33) ? 'text-success' : 'text-danger';
+                                                ?>
+                                                <span class="<?= $p_color ?> fw-bold small"><?= $p_winrate ?>%</span>
+                                            </td>
+                                            <td class="text-end align-middle">
+                                                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 rounded-pill">
+                                                    <?= $joueur['victoires'] ?>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    <?php $rank++;
+                                    endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="authModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-custom">
+                <div class="modal-header">
+                    <h5 class="modal-title">Authentification</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs nav-fill mb-3" id="authTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login-panel" type="button" role="tab">Connexion</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="register-tab" data-bs-toggle="tab" data-bs-target="#register-panel" type="button" role="tab">Inscription</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="authTabsContent">
+
+                        <div class="tab-pane fade show active" id="login-panel" role="tabpanel">
+                            <form method="POST">
+                                <input type="hidden" name="auth_action" value="login">
+                                <div class="mb-3">
+                                    <label class="form-label modal-label">Nom d'utilisateur</label>
+                                    <input type="text" name="username" class="form-control form-control-dark" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label modal-label">Mot de passe</label>
+                                    <input type="password" name="password" class="form-control form-control-dark" required>
+                                </div>
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary">Se connecter</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="tab-pane fade" id="register-panel" role="tabpanel">
+                            <form method="POST" onsubmit="return validationpw(this)">
+                                <input type="hidden" name="auth_action" value="register">
+                                <div class="mb-3">
+                                    <label class="form-label modal-label">Nom d'utilisateur</label>
+                                    <input type="text" name="username" class="form-control form-control-dark" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label modal-label">Mot de passe</label>
+                                    <input type="password" name="password" id="reg_password" class="form-control form-control-dark" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label modal-label">Confirmer le mot de passe</label>
+                                    <input type="password" name="password2" id="reg_password2" class="form-control form-control-dark" required>
+                                </div>
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-success">S'inscrire</button>
+                                </div>
+                            </form>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function validationpw(form) {
+            const password = form.password.value;
+            const password2 = form.password2.value;
+            if (password !== password2) {
+                alert("Les mots de passe ne correspondent pas.");
+                return false;
+            }
+            return true;
+        }
+    </script>
+</body>
 
 </html>
