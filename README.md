@@ -6,7 +6,7 @@ Cette application web permet de jouer au **Shifumi** contre un ordinateur, avec 
 
 ## Objectifs du projet
 
-- Appliquer les bases du **PHP 8**
+- Appliquer les bases du **PHP**
 - Implémenter la logique du jeu Shifumi
 - Utiliser les **sessions**
 - Stocker des données dans une **base de données MySQL**
