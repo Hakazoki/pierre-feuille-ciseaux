@@ -17,27 +17,11 @@ Cette application web permet de jouer au **Shifumi** contre un ordinateur, avec 
 
 ## Technologies utilisées
 
-- HTML5  
-- CSS3  
-- PHP 8  
+- HTML
+- CSS  
+- PHP  
 - MySQL  
-- Bootstrap 5  
-
----
-
-## Structure du projet
-/css
-└── style.css
-/authentification.php
-/config.example.php
-/gamelogic.php
-/leaderboard.php
-/index.php
-/index.html
-/profile.html
-/shifumi.sql
-.gitignore
-README.md
+- Bootstrap  
 
 ---
 
@@ -108,7 +92,7 @@ Sécurité
 
 Mots de passe hashés
 
-Requêtes SQL sécurisées (PDO)
+Requêtes SQL sécurisées 
 
 Fichier config.php ignoré par Git
 
