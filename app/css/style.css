@@ -3,7 +3,7 @@
     --panel-dark: #1e293b;
     --panel-border: rgba(255, 255, 255, 0.08);
     --text-main: #f1f5f9;
-    --text-muted: #bac2ce;
+    --text-muted: #989898e9;
     --color-win: #4ade80;
     --color-loss: #f43f5e;
     --color-tie: #fbbf24;
@@ -71,7 +71,8 @@ body {
     left: 0;
     right: 0;
     z-index: 1000;
-    height: var(--navbar-height);
+    min-height: var(--navbar-height);
+    transition: background 0.3s;
 }
 
 .brand-logo {
@@ -282,6 +283,10 @@ body {
     --bs-modal-bg: var(--bg-dark)
 }
 
+.text-muted {
+    color: var(--text-muted) !important;
+}
+
 .nav-tabs {
     border-bottom-color: var(--panel-border);
 }
@@ -302,4 +307,22 @@ body {
     background-color: transparent !important;
     color: var(--color-accent) !important;
     border-bottom: 2px solid var(--color-accent);
+}
+
+/* style custom pour hamburger mobile */
+
+@media (max-width: 991px) {
+    .navbar-collapse {
+        background-color: var(--bg-dark);
+        border: 1px solid var(--panel-border);
+        padding: 1.5rem;
+        border-radius: 16px;
+        margin-top: 15px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+    }
+
+    .navbar-nav,
+    .d-flex {
+        align-items: center;
+    }
 }

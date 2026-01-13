@@ -17,54 +17,69 @@ require_once './leaderboard.php';
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./css/style.css">
+    <?php if (isset($_SESSION['username']) && strtolower($_SESSION['username']) === 'spock'): ?>
+        <style>
+            body {
+                background: url('./images/giphy.gif') no-repeat center center fixed !important;
+                background-size: cover !important;
+            }
+        </style>
+    <?php endif; ?>
 </head>
 
 <body>
 
-    <nav class="navbar navbar-custom glass-panel">
-        <div class="container-fluid px-lg-5 justify-content-between">
+    <nav class="navbar navbar-expand-lg navbar-custom glass-panel">
+        <div class="container-fluid px-lg-5">
 
-            <div class="d-flex align-items-center">
-                <a class="navbar-brand d-flex align-items-center" href="#">
-                    <span class="brand-logo">SHIFUMI</span>
-                </a>
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <span class="brand-logo">SHIFUMI</span>
+            </a>
 
-                <form method="POST" class="d-flex gap-2 align-items-center m-0">
+            <button class="navbar-toggler border-0 text-white" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+                <i class="bi bi-list fs-1"></i>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarContent">
+
+                <form method="POST" class="d-flex flex-column flex-lg-row gap-2 align-items-start align-items-lg-center m-0 me-auto mt-3 mt-lg-0">
                     <button type="submit" name="switch_mode" value="<?= $nextModeVal ?>"
-                        class="badge-btn <?= $_SESSION['mode'] === 'spock' ? 'active-mode' : '' ?>"
-                        title="Switch mode">
+                        class="badge-btn w-100 w-lg-auto <?= $_SESSION['mode'] === 'spock' ? 'active-mode' : '' ?>"
+                        title="Click to switch mode">
                         <?= $_SESSION['mode'] === 'traditionnel' ? 'Mode Classique' : 'Mode Spock 🖖' ?>
                     </button>
 
                     <button type="submit" name="switch_ia" value="<?= $nextRandomVal ?>"
-                        class="badge-btn"
-                        title="Switch IA">
+                        class="badge-btn w-100 w-lg-auto"
+                        title="Click to toggle AI">
                         <?= $_SESSION['random'] === 'oui' ? 'Random' : 'IA Active 🤖' ?>
                     </button>
                 </form>
+
+                <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-center gap-3 mt-3 mt-lg-0">
+
+                    <button type="button" class="btn btn-link text-warning text-decoration-none opacity-75 hover-opacity-100 ps-0" data-bs-toggle="modal" data-bs-target="#leaderboardModal" title="Classement">
+                        <i class="bi bi-trophy-fill fs-5"></i>
+                        <span class="d-inline-block d-lg-none ms-2 fw-bold">Classement</span> <span class="d-none d-lg-inline-block ms-1">Classement</span> </button>
+
+                    <?php if (isset($_SESSION['user_id'])): ?>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-white small opacity-75">
+                                Bonjour, <strong><?= htmlspecialchars($_SESSION['username']) ?></strong>
+                            </span>
+                            <a href="?logout=true" class="btn btn-link text-danger text-decoration-none opacity-75 hover-opacity-100" title="Déconnexion">
+                                <i class="bi bi-box-arrow-right fs-5"></i>
+                            </a>
+                        </div>
+                    <?php else: ?>
+                        <button type="button" class="btn btn-link text-white text-decoration-none opacity-75 hover-opacity-100 ps-0" data-bs-toggle="modal" data-bs-target="#authModal">
+                            <i class="bi bi-box-arrow-in-right fs-5"></i>
+                            <span class="ms-1">Login</span>
+                        </button>
+                    <?php endif; ?>
+                </div>
+
             </div>
-
-            <div class="d-flex align-items-center gap-3">
-
-                <button type="button" class="btn btn-link text-warning text-decoration-none opacity-75 hover-opacity-100" data-bs-toggle="modal" data-bs-target="#leaderboardModal" title="Classement">
-                    <i class="bi bi-trophy-fill fs-5"></i>
-                    <span class="d-none d-md-inline-block ms-1">Classement</span>
-                </button>
-
-                <?php if (isset($_SESSION['user_id'])): ?>
-                    <span class="text-white small opacity-75 d-none d-md-block">
-                        Bonjour, <strong><?= htmlspecialchars($_SESSION['username']) ?></strong>
-                    </span>
-                    <a href="?logout=true" class="btn btn-link text-danger text-decoration-none opacity-75 hover-opacity-100" title="Déconnexion">
-                        <i class="bi bi-box-arrow-right fs-5"></i>
-                    </a>
-                <?php else: ?>
-                    <button type="button" class="btn btn-link text-white text-decoration-none opacity-75 hover-opacity-100" data-bs-toggle="modal" data-bs-target="#authModal">
-                        <i class="bi bi-box-arrow-in-right fs-5"></i> Login
-                    </button>
-                <?php endif; ?>
-            </div>
-
         </div>
     </nav>
 
@@ -112,12 +127,12 @@ require_once './leaderboard.php';
                             </div>
 
                             <?php
-                            $nbparties = $_SESSION['score'] + $_SESSION['defaite'] + $_SESSION['egalites'];
-                            $winrate = ($nbparties > 0) ? round(($_SESSION['score'] / $nbparties) * 100) : 0;
+                            $nbpartiesdecisives = $_SESSION['score'] + $_SESSION['defaite'];
+                            $winrate = ($nbpartiesdecisives > 0) ? round(($_SESSION['score'] / $nbpartiesdecisives) * 100) : 0;
 
                             $couleur_winrate = 'text';
-                            if ($winrate >= 33) $couleur_winrate = 'text-win';
-                            if ($winrate < 33 && $nbparties > 0) $couleur_winrate = 'text-loss';
+                            if ($winrate >= 50) $couleur_winrate = 'text-win';
+                            if ($winrate < 50 && $nbpartiesdecisives > 0) $couleur_winrate = 'text-loss';
                             ?>
                             <div class="text-end">
                                 <div class="<?= $couleur_winrate ?> fw-bold fs-5"><?= $winrate ?>%</div>
@@ -178,9 +193,6 @@ require_once './leaderboard.php';
                     <div class="history-header">
                         <span class="text-white fw-bold small text-uppercase letter-spacing-1">Historique</span>
                         <form method="POST" class="m-0">
-                            <button type="submit" name="clear_history" class="btn btn-link text p-0 text-decoration-none small">
-                                <i class="bi bi-trash"></i> Clear
-                            </button>
                         </form>
                     </div>
 
@@ -221,7 +233,7 @@ require_once './leaderboard.php';
     </main>
 
     <div class="modal fade" id="leaderboardModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content modal-custom">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="bi bi-trophy-fill text-warning me-2"></i>Classement Top 10</h5>
@@ -260,15 +272,28 @@ require_once './leaderboard.php';
                                                     <?= htmlspecialchars($joueur['username']) ?>
                                                 </span>
                                                 <div class="small text" style="font-size: 0.75em;">
-                                                    <?= $joueur['parties'] ?> parties jouées
+                                                    <?= $joueur['victoires'] + $joueur['defaites'] ?> parties décisives
+                                                </div>
+                                                <div class="small text text-muted" style="font-size: 0.75em;">
+                                                    <?= $joueur['parties'] - $joueur['defaites'] - $joueur['victoires'] ?> égalitées
                                                 </div>
                                             </td>
                                             <td class="text-center align-middle">
                                                 <?php
-                                                $p_winrate = ($joueur['parties'] > 0) ? round(($joueur['victoires'] / $joueur['parties']) * 100) : 0;
-                                                $p_color = ($p_winrate >= 33) ? 'text-success' : 'text-danger';
+                                                $parties_decisives = $joueur['victoires'] + $joueur['defaites'];
+                                                if ($parties_decisives > 0) {
+                                                    $p_winrate = round(($joueur['victoires'] / $parties_decisives) * 100);
+                                                } else {
+                                                    $p_winrate = 0;
+                                                }
+                                                $p_color = ($p_winrate >= 50) ? 'text-success' : 'text-danger';
                                                 ?>
-                                                <span class="<?= $p_color ?> fw-bold small"><?= $p_winrate ?>%</span>
+                                                <div class="d-flex flex-column justify-content-center">
+                                                    <span class="<?= $p_color ?> fw-bold small"><?= $p_winrate ?>%</span>
+                                                    <span class="text-muted" style="font-size: 0.65em; opacity: 0.7;">
+                                                        <?= $joueur['victoires'] ?>W - <?= $joueur['defaites'] ?>L
+                                                    </span>
+                                                </div>
                                             </td>
                                             <td class="text-end align-middle">
                                                 <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 rounded-pill">

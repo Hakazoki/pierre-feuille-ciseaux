@@ -90,11 +90,7 @@ if (isset($_POST['switch_ia'])) {
     $_SESSION['random'] = $_POST['switch_ia'];
     restart();
 }
-if (isset($_POST['clear_history'])) {
-    $_SESSION['choixjoueur'] = [];
-    $_SESSION['choixadversaire'] = [];
-    rediriger();
-}
+
 
 //déterminer choix joueur
 
@@ -111,28 +107,43 @@ if (!empty($_POST['choix']) && in_array($_POST['choix'], OPTIONS)) {
     } else {
         $etapelogique = ($_SESSION['tour'] - 1) % 5 + 1;
         switch ($etapelogique) {
-            case 1:
+            case 1: // choix aléatoire
                 $MoveAdversaire = rand(0, $maxIndex);
                 break;
-            case 2:
+            case 2: // choix qui bat le premier geste du joueur
+                // on recupère le premier coup du joueur et son indice dans le tableau OPTIONS
                 $couptour1 = $_SESSION['choixjoueur'][0];
                 $id1 = array_search($couptour1, OPTIONS);
                 $wins = [];
-                for ($i = 0; $i <= $maxIndex; $i++) if (determinerGagnant($id1, $i) === 1) $wins[] = $i;
-                $MoveAdversaire = !empty($wins) ? $wins[array_rand($wins)] : rand(0, $maxIndex);
+                // parcourir tous les gestes possibles
+                for ($i = 0; $i <= $maxIndex; $i++) {
+                    // si le coup i bat le premier coup du joueur on le met dans wins
+                    if (determinerGagnant($id1, $i) === 1) {
+                        $wins[] = $i;
+                    }
+                }
+                // on prend un des coups gagnant aléatoirement
+                $MoveAdversaire = $wins[array_rand($wins)];
                 break;
-            case 3:
+            case 3: // répète son coup au tour 1 (avant dernier coup)
                 $prev = $_SESSION['choixadversaire'][sizeof($_SESSION['choixadversaire']) - 2];
                 $MoveAdversaire = array_search($prev, OPTIONS);
                 break;
-            case 4:
-                $exclus = [array_search(end($_SESSION['choixadversaire']), OPTIONS), array_search(prev($_SESSION['choixadversaire']), OPTIONS)];
+            case 4: // Choisit un coup aléatoire qui exclu les deux derniers gestes de l'ia
+                // on met les deux derniers coups de l'ia dans un tableau exclus
+                $exclus = [
+                    array_search(end($_SESSION['choixadversaire']), OPTIONS),
+                    array_search(prev($_SESSION['choixadversaire']), OPTIONS)
+                ];
+
+                // boucle jusqu’à obtenir un indice qui n’est pas dans $exclus
                 do {
                     $MoveAdversaire = rand(0, $maxIndex);
                 } while (in_array($MoveAdversaire, $exclus));
                 break;
-            case 5:
-                $MoveAdversaire = array_search($_SESSION['choixjoueur'][sizeof($_SESSION['choixjoueur']) - 1], OPTIONS);
+            case 5: // imite le dernier coup du joueur
+                $dernierJoueur = $_SESSION['choixjoueur'][sizeof($_SESSION['choixjoueur']) - 1];
+                $MoveAdversaire = array_search($dernierJoueur, OPTIONS);
                 break;
         }
     }
@@ -152,9 +163,11 @@ if (!empty($_POST['choix']) && in_array($_POST['choix'], OPTIONS)) {
             // Incrément du nb de parties
             $sql = "UPDATE utilisateur SET parties = parties + 1";
 
-            // Incrément des victoires
+            // Incrément des victoires et défaites
             if ($resultat === 0) {
                 $sql .= ", victoires = victoires + 1";
+            } elseif ($resultat === 1) {
+                $sql .= ", defaites = defaites + 1";
             }
 
             $sql .= " WHERE user_id = :id";
